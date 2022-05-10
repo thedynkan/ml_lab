@@ -1,0 +1,72 @@
+---
+title: "Regression solution"
+output: html_document
+date: '2022-05-09'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+This is assignment is inspired by practices of [Ryan Miller] (https://remiller1450.github.io/).
+
+## Using regression for predicting binary outcome.
+
+The [Donner Party] (https://en.wikipedia.org/wiki/Donner_Party) dataset documents the fate of members of the Donner Party, a group of 45 pioneers whose migration to California was delayed by a series of mishaps which resulted in the group being stranded in the Sierra Nevada mountains.
+
+**Problem**
+Predict survival status members of the Donner Party. The target variable is `Survived`.
+
+## Task
+
+Read the data. Pay attention that data has NA values. It's better to convert target variable to factor.
+```{r}
+# code for reading data
+
+library(caret)
+set.seed("1234")
+x <- read.csv('donner_party1.csv')
+#x <- na.omit(x)
+x[is.na(x$Age),]$Age <- mean(x$Age, na.rm = T)
+x$Survived <- as.factor(x$Survived)
+xsplit <- createDataPartition(x$Survived, p = 0.6, list = FALSE)
+trainx <- x[xsplit,]
+testx <- x[-xsplit,]
+
+```
+
+For prediction we will use only variables `Sex` and `Age`. 
+
+For predicting binary outcome we will use **Generalized Linear Model** (`method = "glm"`) and **caret package**. 
+
+```{r}
+# code for regression
+
+model <- train(Survived~Age+Sex, data = trainx, method="glm", family = "binomial")
+pr <- predict(model, newdata = testx)
+
+```
+
+What is your in-sample accuracy? Build a confusion matrix
+
+```{r}
+# code for confusion matrix
+
+model
+cmat <- confusionMatrix(pr,testx$Survived)
+cmat
+
+```
+Use a cross-validation with `method = "repeatedcv"`, `number = 5`, `repeats = 10`. Does cross-validation improve the accuracy?
+
+```{r}
+# code for cross-validation
+
+tc <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
+modelcv <- train(Survived ~ Age + Sex, data = trainx, method = "glm", family = "binomial", trControl = tc)
+modelcv
+prcv <- predict(modelcv, newdata = testx)
+cmatcv <- confusionMatrix(prcv,testx$Survived)
+cmatcv
+
+```
